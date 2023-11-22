@@ -12,10 +12,11 @@
 module load rfdiffusion/1.1.0
 
 model="/home/valkove2/not9.pdb"
-binder_length="30-50"
+model_id=`basename "$model" .pdb`
+binder_length="20-40"
 hotspot_residue="166"
-num_binders="10"
-
+num_binders="100"
+graphic_output="yes"
 
 #### DO NOT EDIT BELOW ####
 
@@ -48,7 +49,9 @@ $RFDIFFUSION_DIR/scripts/run_inference.py \
 
 echo -e "RFDiffusion complete"
 
-echo "
+
+if [ "$graphic_output" = "yes" ]; then
+	echo "
 set bgcolor white
 open $model
 open $OUT_DIR/$project/rfdiff*.pdb
@@ -67,10 +70,11 @@ hide sel atoms
 show sel cartoons
 show sel atoms
 style sel sphere
-color sel byhetero
+color sel byelement
 select clear
 hide all models
 show #1 models
+view all
 movie record size 1500,1500 format png supersample 4 directory $OUT_DIR/$project
 " > $OUT_DIR/$project/chimera_run.cxc
 
@@ -120,7 +124,14 @@ rm $OUT_DIR/$project/chimovie*.png
 # workaround with libcrypto not accessing the correct openssl 
 export LD_LIBRARY_PATH=/lib64:$LD_LIBRARY_PATH
 
-echo -e "<img src=\"cid:animated.gif\" />" | mutt -e 'set content_type=text/html' -s "Movie" -a $OUT_DIR/$project/animated.gif -a $OUT_DIR/$project/session.cxs -e 'my_hdr From:RFDiffusion (RFDiffusion)' -b eugene.valkov@gmail.com -- "$USER"@nih.gov
+echo -e "<img src=\"cid:animated.gif\" />" | mutt -e 'set content_type=text/html' -s "RFdiffusion for $model_id is finished" -a $OUT_DIR/$project/animated.gif -a $OUT_DIR/$project/session.cxs -e 'my_hdr From:RFdiffusion (RFdiffusion)' -b eugene.valkov@gmail.com -- "$USER"@nih.gov
+
+elif [ "$graphic_output" = "no" ]; then
+
+echo -e "Generated binders are in $OUT_DIR/$project" | mutt -s "RFdiffusion for $model_id is finished" -e 'my_hdr From:RFdiffusion (RFdiffusion)' -b eugene.valkov@gmail.com -- "$USER"@nih.gov
+
+fi
+
 
 if [ -e "$HOME"/.boxpassword ]; then
 	username=`echo "$USER"@nih.gov`
@@ -136,6 +147,7 @@ bye" > $HOME/."$project".lftpconfig
 	chmod 600 $HOME/."$project".lftpconfig
 	lftp -f $HOME/."$project".lftpconfig
 	rm $HOME/."$project".lftpconfig
+	echo -e "Transfer to Box complete."
 fi
 
-echo -e "Transfer complete."
+echo -e "Done."
