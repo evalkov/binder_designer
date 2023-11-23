@@ -12,7 +12,7 @@
 module load rfdiffusion/1.1.0
 
 model="/home/valkove2/not9.pdb"
-binder_length="20-40"
+binder_length="10-30"
 hotspot_residue="166"
 num_binders="100"
 graphic_output="yes"
@@ -93,10 +93,10 @@ stop
 hide #$count models
 2dlab delete
 " >> $OUT_DIR/$project/chimera_run.cxc
-# Check if count is 11, then break the loop - reduces rendering time by ChimeraX
-    if [ $count -eq 11 ]; then
-        break
-    fi
+# limit movie to 10 models or less to reduce rendering time by ChimeraX
+	if [ $count -eq 11 ] || [ $((num_binders + 1)) -eq $count ]; then
+		break
+    	fi
 done
 
 echo "
@@ -131,7 +131,7 @@ bzip2 -9 -k $OUT_DIR/$project/session.cxs
 
 echo -e "<img src=\"cid:animated.gif\" />" | mutt -e 'set content_type=text/html' -s "RFdiffusion for $model_id is finished" -a $OUT_DIR/$project/animated.gif -a $OUT_DIR/$project/session.cxs.bz2 -e 'my_hdr From:RFdiffusion (RFdiffusion)' -b eugene.valkov@gmail.com -- "$USER"@nih.gov
 
-rm $OUT_DIR/$project/session.cxs.bz2
+#rm $OUT_DIR/$project/session.cxs.bz2
 
 elif [ "$graphic_output" = "no" ]; then
 
