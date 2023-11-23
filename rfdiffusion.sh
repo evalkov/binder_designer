@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=1G
-#SBATCH --time=03:00:00
+#SBATCH --time=05:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=valkove2
 
@@ -15,7 +15,7 @@ model="/home/valkove2/not9.pdb"
 model_id=`basename "$model" .pdb`
 binder_length="20-40"
 hotspot_residue="166"
-num_binders="100"
+num_binders="10"
 graphic_output="yes"
 
 #### DO NOT EDIT BELOW ####
@@ -38,6 +38,8 @@ OUT_DIR="/scratch/cluster_scratch/valkove2/rfdiff"
 
 # Create the directory
 mkdir $OUT_DIR/"$project"
+
+cp $model $OUT_DIR/$project
 
 $RFDIFFUSION_DIR/scripts/run_inference.py \
 	inference.output_prefix=$OUT_DIR/$project/rfdiff \
@@ -124,7 +126,12 @@ rm $OUT_DIR/$project/chimovie*.png
 # workaround with libcrypto not accessing the correct openssl 
 export LD_LIBRARY_PATH=/lib64:$LD_LIBRARY_PATH
 
-echo -e "<img src=\"cid:animated.gif\" />" | mutt -e 'set content_type=text/html' -s "RFdiffusion for $model_id is finished" -a $OUT_DIR/$project/animated.gif -a $OUT_DIR/$project/session.cxs -e 'my_hdr From:RFdiffusion (RFdiffusion)' -b eugene.valkov@gmail.com -- "$USER"@nih.gov
+# compress Chimera session file using BZIP2 for email
+bzip2 -9 -k $OUT_DIR/$project/session.cxs
+
+echo -e "<img src=\"cid:animated.gif\" />" | mutt -e 'set content_type=text/html' -s "RFdiffusion for $model_id is finished" -a $OUT_DIR/$project/animated.gif -a $OUT_DIR/$project/session.cxs.bz2 -e 'my_hdr From:RFdiffusion (RFdiffusion)' -b eugene.valkov@gmail.com -- "$USER"@nih.gov
+
+rm $OUT_DIR/$project/session.cxs.bz2
 
 elif [ "$graphic_output" = "no" ]; then
 
