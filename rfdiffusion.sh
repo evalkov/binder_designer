@@ -12,13 +12,18 @@
 module load rfdiffusion/1.1.0
 
 model="/home/valkove2/not9.pdb"
-model_id=`basename "$model" .pdb`
 binder_length="20-40"
 hotspot_residue="166"
-num_binders="10"
+num_binders="100"
 graphic_output="yes"
+RFDIFFUSION_DIR="/home/valkove2/soft/RFdiffusion"
+OUT_DIR="/scratch/cluster_scratch/valkove2/rfdiff"
+
+
 
 #### DO NOT EDIT BELOW ####
+
+model_id=`basename "$model" .pdb`
 
 hotspot=`awk '/^ATOM/ && $6 == '$hotspot_residue' {residue_name = $4} END {print residue_name}' $model`
 echo -e "Hostpot residue is $hotspot"
@@ -32,11 +37,6 @@ timestamp=$(date +"%Y%m%d_%H%M%S")
 
 # Create a directory name with the timestamp
 project="rfdiff_$timestamp"
-
-RFDIFFUSION_DIR="/home/valkove2/soft/RFdiffusion"
-OUT_DIR="/scratch/cluster_scratch/valkove2/rfdiff"
-
-# Create the directory
 mkdir $OUT_DIR/"$project"
 
 cp $model $OUT_DIR/$project
