@@ -12,9 +12,9 @@
 module load rfdiffusion/1.1.0
 
 model="/home/valkove2/caf1.pdb"
-binder_length="70"
+binder_length="30"
 hotspot_residue="40"
-num_binders="1000"
+num_binders="5"
 graphic_output="yes"
 RFDIFFUSION_DIR="/home/valkove2/soft/RFdiffusion"
 OUT_DIR="/scratch/cluster_scratch/valkove2/rfdiff"
@@ -104,9 +104,9 @@ movie stop
 save $OUT_DIR/$project/session.cxs	
 " >> $OUT_DIR/$project/chimera_run.cxc
 
-module load ChimeraX/1.5
+module load ChimeraX/1.7
 
-ChimeraX --offscreen --script $OUT_DIR/$project/chimera_run.cxc --exit
+chimerax --offscreen --script $OUT_DIR/$project/chimera_run.cxc --exit
 
 convert \
 	-dispose previous \
@@ -127,9 +127,9 @@ rm $OUT_DIR/$project/chimovie*.png
 export LD_LIBRARY_PATH=/lib64:$LD_LIBRARY_PATH
 
 # compress Chimera session file using BZIP2 for email
-bzip2 -9 -k $OUT_DIR/$project/session.cxs
+#bzip2 -9 -k $OUT_DIR/$project/session.cxs
 
-echo -e "<img src=\"cid:animated.gif\" />" | mutt -e 'set content_type=text/html' -s "RFdiffusion for $model_id is finished" -a $OUT_DIR/$project/animated.gif -a $OUT_DIR/$project/session.cxs.bz2 -e 'my_hdr From:RFdiffusion (RFdiffusion)' -b eugene.valkov@gmail.com -- "$USER"@nih.gov
+echo -e "<img src=\"cid:animated.gif\" />" | mutt -e 'set content_type=text/html' -s "RFdiffusion for $model_id is finished" -a $OUT_DIR/$project/animated.gif -e 'my_hdr From:RFdiffusion (RFdiffusion)' -b eugene.valkov@gmail.com -- "$USER"@nih.gov
 
 #rm $OUT_DIR/$project/session.cxs.bz2
 
@@ -139,22 +139,13 @@ echo -e "Generated binders are in $OUT_DIR/$project" | mutt -s "RFdiffusion for 
 
 fi
 
-
-if [ -e "$HOME"/.boxpassword ]; then
-	username=`echo "$USER"@nih.gov`
-	password=`awk '{print $1}' $HOME/.boxpassword`
-	echo "\
-set ftp:ssl-force true;
-set mirror:parallel-directories true;
-connect ftp://ftp.box.com;
-user '$username' '$password';
-cd RFdiffusion;
-mirror -R --no-symlinks "$OUT_DIR"/"$project";
-bye" > $HOME/."$project".lftpconfig
-	chmod 600 $HOME/."$project".lftpconfig
-	lftp -f $HOME/."$project".lftpconfig
-	rm $HOME/."$project".lftpconfig
-	echo -e "Transfer to Box complete."
+if [ -e $HOME/.netrc ]; then
+# Start lftp session
+lftp ftp.box.com << EOF
+cd RFdiffusion
+mirror -R --no-symlinks $OUT_DIR/$project
+bye
+EOF
 fi
 
 echo -e "Done."
