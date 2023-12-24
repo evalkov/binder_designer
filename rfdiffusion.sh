@@ -5,16 +5,16 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=1G
-#SBATCH --time=05:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=valkove2
 
 module load rfdiffusion/1.1.0
 
 model="/home/valkove2/caf1.pdb"
-binder_length="20-30"
+binder_length="70"
 hotspot_residue="40"
-num_binders="10"
+num_binders="1000"
 graphic_output="yes"
 RFDIFFUSION_DIR="/home/valkove2/soft/RFdiffusion"
 OUT_DIR="/scratch/cluster_scratch/valkove2/rfdiff"
