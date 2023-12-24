@@ -11,10 +11,10 @@
 
 module load rfdiffusion/1.1.0
 
-model="/home/valkove2/not9.pdb"
-binder_length="10-30"
-hotspot_residue="166"
-num_binders="100"
+model="/home/valkove2/caf1.pdb"
+binder_length="20-30"
+hotspot_residue="40"
+num_binders="10"
 graphic_output="yes"
 RFDIFFUSION_DIR="/home/valkove2/soft/RFdiffusion"
 OUT_DIR="/scratch/cluster_scratch/valkove2/rfdiff"
