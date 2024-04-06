@@ -18,7 +18,7 @@ SILENT_TOOLS="/home/valkove2/soft/silent_tools"
 module purge
 module load rfdiffusion/1.1.0
 
-# Check if rfd.inp exists
+# Check if the input file with parameters exists
 if [ -f "$PARAMS_FILE" ]; then
 	# Extract values from parameters file
 	OUT_DIR=$(grep 'output=' $PARAMS_FILE | cut -d'=' -f2)
@@ -77,7 +77,7 @@ RANDOM_STRING=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
 ANALYSIS_SCR="rfd-analysis.sh"
 ANALYSIS_RUN="${ANALYSIS_SCR%.*}_$RANDOM_STRING.${ANALYSIS_SCR##*.}"
 
-cp $BINDER_DESIGNER_DIR/rfd-analysis.sh $ANALYSIS_RUN
+cp $BINDER_DESIGNER_DIR/binder-design-analysis.sh $ANALYSIS_RUN
 
 awk -v out_dir="$OUT_DIR/$project" '/cd \$PROC_DIR/ {print "PROC_DIR=\""out_dir"\""; found=1} {print} END {if (!found) print "PROC_DIR=\""out_dir"\""}' $ANALYSIS_RUN > tmpfile && mv tmpfile $ANALYSIS_RUN
 awk -v model="$input_pdb" '/cd \$PROC_DIR/ {print "model=\""model"\""; found=1} {print}' $ANALYSIS_RUN > tmpfile && mv tmpfile $ANALYSIS_RUN
