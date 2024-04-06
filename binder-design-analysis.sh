@@ -5,10 +5,10 @@
 #SBATCH --mem-per-cpu=1G
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=valkove2
+#SBATCH --mail-user=$USER
 
-model="/scratch/cluster_scratch/valkove2/rfdiffusion/caf1_20240223_181551/caf1.pdb"
-PROC_DIR="/scratch/cluster_scratch/valkove2/rfdiffusion/caf1_20240223_181551"
+model="<full-path-to-model-pdb-file>"
+PROC_DIR="<processing-directory>"
 
 cd $PROC_DIR
 

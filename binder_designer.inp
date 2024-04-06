@@ -2,4 +2,4 @@ output=/scratch/cluster_scratch/valkove2/rfdiffusion
 inference.input_pdb=/home/valkove2/pdbs/not9.pdb
 contigmap.contigs=[B1-268/0 20-30]
 ppi.hotspot_res=[A166]
-inference.num_designs=20
+inference.num_designs=10
