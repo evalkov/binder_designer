@@ -7,12 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=$USER
 
-model="<full-path-to-model-pdb-file>"
-PROC_DIR="<processing-directory>"
-
 cd $PROC_DIR
-
-RFDIFFUSION_DIR="/home/valkove2/soft/RFdiffusion"
 
 # Examine hydra config files for settings
 hydra_config_1=`find . -type f -name config.yaml`

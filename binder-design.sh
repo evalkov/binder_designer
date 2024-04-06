@@ -81,6 +81,7 @@ cp $BINDER_DESIGNER_DIR/binder-design-analysis.sh $ANALYSIS_RUN
 
 awk -v out_dir="$OUT_DIR/$project" '/cd \$PROC_DIR/ {print "PROC_DIR=\""out_dir"\""; found=1} {print} END {if (!found) print "PROC_DIR=\""out_dir"\""}' $ANALYSIS_RUN > tmpfile && mv tmpfile $ANALYSIS_RUN
 awk -v model="$input_pdb" '/cd \$PROC_DIR/ {print "model=\""model"\""; found=1} {print}' $ANALYSIS_RUN > tmpfile && mv tmpfile $ANALYSIS_RUN
+awk -v rfdir="$RFDIFFUSION_DIR" '/cd \$PROC_DIR/ {print "RFDIFFUSION_DIR=\""rfdir"\""; found=1} {print}' $ANALYSIS_RUN > tmpfile && mv tmpfile $ANALYSIS_RUN
 
 sbatch --dependency=afterok:$SLURM_JOB_ID $ANALYSIS_RUN
 
