@@ -74,7 +74,7 @@ $DL_BINDER_DESIGN_DIR/af2_initial_guess/predict.py -silent mpnn.silent -outsilen
 silentextract af2.silent
 
 RANDOM_STRING=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
-ANALYSIS_SCR="rfd-analysis.sh"
+ANALYSIS_SCR="binder-design-analysis.sh"
 ANALYSIS_RUN="${ANALYSIS_SCR%.*}_$RANDOM_STRING.${ANALYSIS_SCR##*.}"
 
 cp $BINDER_DESIGNER_DIR/binder-design-analysis.sh $ANALYSIS_RUN
