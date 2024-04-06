@@ -5,9 +5,9 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=1G
-#SBATCH --time=7-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=valkove2
+#SBATCH --mail-user=$USER
 
 PARAMS_FILE="$PWD/binder_designer.inp"
 BINDER_DESIGNER_DIR="/home/valkove2/soft/scripts/binder_designer"
