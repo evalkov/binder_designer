@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=20G
-#SBATCH --time=12:00:00
+#SBATCH --time=1-00:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=valkove2
 

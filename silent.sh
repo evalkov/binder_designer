@@ -14,4 +14,4 @@ export PATH=${HOME}/soft/silent_tools:$PATH
 module purge
 module load dl_binder_design/proteinmpnn_binder_design
 
-silentfrompdbs /scratch/cluster_scratch/valkove2/rfdiff/rfdiff_20231223_230703/rfdiff_*.pdb > my_designs.silent
+silentfrompdbs /scratch/cluster_scratch/valkove2/rfdiff/rfdiff_20231224_074245/rfdiff_*.pdb > my_designs.silent
