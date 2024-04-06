@@ -10,10 +10,14 @@
 #SBATCH --mail-user=$USER
 
 PARAMS_FILE="$PWD/binder_designer.inp"
-BINDER_DESIGNER_DIR="/home/valkove2/soft/scripts/binder_designer"
-RFDIFFUSION_DIR="/home/valkove2/soft/RFdiffusion"
-DL_BINDER_DESIGN_DIR="/home/valkove2/soft/dl_binder_design"
-SILENT_TOOLS="/home/valkove2/soft/silent_tools"
+
+# edit these software locations
+BINDER_DESIGNER_DIR="$HOME/soft/binder_designer"
+RFDIFFUSION_DIR="$HOME/soft/RFdiffusion"
+DL_BINDER_DESIGN_DIR="$HOME/soft/dl_binder_design"
+SILENT_TOOLS="$HOME/soft/silent_tools"
+
+
 
 module purge
 module load rfdiffusion/1.1.0
