@@ -54,7 +54,7 @@ if [ -f "$PARAMS_FILE" ]; then
             'ppi.hotspot_res=$ppi_hotspot_res' \
             'inference.num_designs=$num_designs'"
 
-	# Check if the use of beta model is specified in rfd.inp and conditionally append to cmd
+	# Check if the use of beta model is specified in parameters file and conditionally append to cmd
 	use_beta=$(grep 'Complex_beta_ckpt.pt' $PARAMS_FILE)
 	if [ -n "$use_beta" ]; then
 		cmd+=" 'inference.ckpt_override_path=$RFDIFFUSION_DIR/models/Complex_beta_ckpt.pt'"
