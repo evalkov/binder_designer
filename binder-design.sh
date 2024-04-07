@@ -12,12 +12,20 @@
 PARAMS_FILE="$PWD/binder_designer.inp"
 
 # edit these software locations
+
+# this set of binder design and analysis scripts
 BINDER_DESIGNER_DIR="$HOME/soft/binder_designer"
+
+# below assumes installation in $HOME/soft/
+# git clone https://github.com/RosettaCommons/RFdiffusion.git
 RFDIFFUSION_DIR="$HOME/soft/RFdiffusion"
+# git clone https://github.com/nrbennet/dl_binder_design.git
 DL_BINDER_DESIGN_DIR="$HOME/soft/dl_binder_design"
+# git clone https://github.com/bcov77/silent_tools.git
 SILENT_TOOLS="$HOME/soft/silent_tools"
 
 
+# do not edit below
 
 module purge
 module load rfdiffusion/1.1.0
