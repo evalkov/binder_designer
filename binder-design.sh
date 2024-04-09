@@ -23,10 +23,11 @@ RFDIFFUSION_DIR="$HOME/soft/RFdiffusion"
 DL_BINDER_DESIGN_DIR="$HOME/soft/dl_binder_design"
 # git clone https://github.com/bcov77/silent_tools.git
 SILENT_TOOLS="$HOME/soft/silent_tools"
-# sed -i "s|schedule_directory_path: null|schedule_directory_path: \$HOME/soft/RFdiffusion|" RFdiffusion/config/inference/base.yaml
+# replace the /home/valkove2/soft/RFdiffusion with the full path of RFdiffusion installed above
+# sed -i "s|schedule_directory_path: null|schedule_directory_path: \/home/valkove2/soft/RFdiffusion|" ~/soft/RFdiffusion/config/inference/base.yaml
 # git clone https://github.com/dauparas/ProteinMPNN.git
 PROTEINMPNN="$HOME/soft/ProteinMPNN"
-# ln -s ProteinMPNN dl_binder_design/mpnn_fr/ProteinMPNN
+# ln -s ~/soft/ProteinMPNN ~/soft/dl_binder_design/mpnn_fr/ProteinMPNN
 # download AlphaFold2 model weights
 # mkdir -p ~/soft/dl_binder_design/af2_initial_guess/model_weights/params && cd ~/soft/dl_binder_design/af2_initial_guess/model_weights/params
 # wget https://storage.googleapis.com/alphafold/alphafold_params_2022-12-06.tar
