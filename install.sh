@@ -56,5 +56,5 @@ ln -s ${INSTALL_DIR}/ProteinMPNN ${INSTALL_DIR}/dl_binder_design/mpnn_fr/Protein
 # Download and extract AlphaFold2 model weights
 mkdir -p ${INSTALL_DIR}/dl_binder_design/af2_initial_guess/model_weights/params
 cd ${INSTALL_DIR}/dl_binder_design/af2_initial_guess/model_weights/params
-#wget https://storage.googleapis.com/alphafold/alphafold_params_2022-12-06.tar
-#tar --extract --verbose --file=alphafold_params_2022-12-06.tar
+wget https://storage.googleapis.com/alphafold/alphafold_params_2022-12-06.tar
+tar --extract --verbose --file=alphafold_params_2022-12-06.tar
