@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Set the installation directory
-INSTALL_DIR="$CWD/binder_designer/soft"
+export BINDER_DESIGNER_DIR="${PWD}"
+INSTALL_DIR="$PWD/soft"
 
 # Ensure the installation directory exists
 mkdir -p $INSTALL_DIR
@@ -17,7 +18,7 @@ git clone https://github.com/dauparas/ProteinMPNN.git
 
 # Content to be inserted
 read -r -d '' PATHS << EOF
-export BINDER_DESIGNER_DIR="${CWD}/binder_designer"
+export BINDER_DESIGNER_DIR="${BINDER_DESIGNER_DIR}"
 export RFDIFFUSION_DIR="${INSTALL_DIR}/RFdiffusion"
 export DL_BINDER_DESIGN_DIR="${INSTALL_DIR}/dl_binder_design"
 export SILENT_TOOLS_DIR="${INSTALL_DIR}/silent_tools"
@@ -31,9 +32,9 @@ awk -v insertion="$PATHS" '
         inserted=1;
     }
     { print }
-' "${INSTALL_DIR}/binder_designer/binder-design.sh" > temp && mv temp "${INSTALL_DIR}/binder_designer/binder-design.sh"
+' "${BINDER_DESIGNER_DIR}/binder-design.sh" > temp && mv temp "${BINDER_DESIGNER_DIR}/binder-design.sh"
 
-chmod +x "${INSTALL_DIR}/binder_designer//binder-design.sh"
+chmod +x "${BINDER_DESIGNER_DIR}/binder-design.sh"
 
 # Use awk to insert the content before "cd $PROC_DIR"
 awk -v insertion="export RFDIFFUSION_DIR=\"${INSTALL_DIR}/RFdiffusion\"" '
@@ -42,9 +43,9 @@ awk -v insertion="export RFDIFFUSION_DIR=\"${INSTALL_DIR}/RFdiffusion\"" '
         inserted=1;
     }
     { print }
-' "${INSTALL_DIR}/binder_designer/binder-design-analysis.sh" > temp && mv temp "${INSTALL_DIR}/binder_designer/binder-design-analysis.sh"
+' "${BINDER_DESIGNER_DIR}/binder-design-analysis.sh" > temp && mv temp "${BINDER_DESIGNER_DIR}/binder-design-analysis.sh"
 
-chmod +x "${INSTALL_DIR}/binder_designer//binder-design-analysis.sh"
+chmod +x "${BINDER_DESIGNER_DIR}/binder-design-analysis.sh"
 
 # Replace the placeholder with the full path of RFdiffusion installed above
 sed -i "s|schedule_directory_path: null|schedule_directory_path: ${INSTALL_DIR}/RFdiffusion|" ${INSTALL_DIR}/RFdiffusion/config/inference/base.yaml
