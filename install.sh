@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the installation directory
-INSTALL_DIR="~/testsoft"
+INSTALL_DIR="$HOME/testsoft"
 
 # Ensure the installation directory exists
 mkdir -p $INSTALL_DIR
