@@ -11,20 +11,6 @@
 
 PARAMS_FILE="$PWD/binder_designer.inp"
 
-# edit these software locations
-
-# this set of binder design and analysis scripts
-BINDER_DESIGNER_DIR="$HOME/soft/binder_designer"
-
-# below assumes installation in $HOME/soft/
-RFDIFFUSION_DIR="$HOME/soft/RFdiffusion"
-DL_BINDER_DESIGN_DIR="$HOME/soft/dl_binder_design"
-SILENT_TOOLS="$HOME/soft/silent_tools"
-PROTEINMPNN="$HOME/soft/ProteinMPNN"
-
-
-# do not edit below
-
 module purge
 module load rfdiffusion/1.1.0
 
