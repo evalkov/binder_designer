@@ -54,7 +54,7 @@ eval $cmd | tee -a $OUT_DIR/$project/rfdiffusion.log
 
 unset PYTHONPATH
 module purge
-export PATH=${SILENT_TOOLS}:$PATH
+export PATH=${SILENT_TOOLS_DIR}:$PATH
 module load dl_binder_design/proteinmpnn_binder_design
 
 silentfrompdbs rfdiff_*.pdb > data.silent
