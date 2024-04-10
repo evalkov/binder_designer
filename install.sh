@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Set the installation directory
-export BINDER_DESIGNER_DIR="${PWD}"
-INSTALL_DIR="$PWD/soft"
+INSTALL_DIR="~/testsoft"
 
 # Ensure the installation directory exists
 mkdir -p $INSTALL_DIR
+
+export BINDER_DESIGNER_DIR="${PWD}"
 
 # Navigate to the installation directory
 cd $INSTALL_DIR
