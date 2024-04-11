@@ -11,7 +11,7 @@ Complex_beta_ckpt.pt
 
 contigmap.contigs=[B1-268/0 20-30] specifies that the target model has 1-268 residues in chain B, "/0" specifies chain breaks, and 20-30 is the residue range for binders.
 
-ppi.hotspot_res=[B166] where where B is the chain ID in the input pdb file of the hotspot residue and 166 is the residue number in the input pdb file of the hotspot residue.
+ppi.hotspot_res=[B166], where B is the chain ID in the hotspot residue's input pdb file and 166 is the residue number.
 
 Multiple hotspot residues can be specified as [A30,A33,A34], for example.
 
@@ -21,7 +21,7 @@ inference.num_designs=20 specifies 20 binder designs to generate.
 
 INSTALLATION
 
-Edit install.sh and specify the directory for installation for the repositories above. By default, they will be installed in ~/soft
+Edit install.sh and specify the install directory for the repositories above. By default, they will be installed in ~/soft
 
 then 
 
