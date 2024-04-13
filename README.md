@@ -22,7 +22,7 @@ Multiple hotspot residues can be specified as [A30,A33,A34], for example.
 
 inference.num_designs=20 specifies 20 binder designs to generate.
 
-This test run should take just over one hour to complete on a Tesla V100 GPU and generate 2-5 binders. 
+This test run should take just over one hour to complete on a Tesla V100 32GB GPU and generate 2-5 binders. 
 
 
 
