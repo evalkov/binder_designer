@@ -22,9 +22,13 @@ Multiple hotspot residues can be specified as [A30,A33,A34], for example.
 
 inference.num_designs=20 specifies 20 binder designs to generate.
 
+This test run should take just over one hour to complete on a Tesla V100 GPU and generate 2-5 binders. 
+
 
 
 INSTALLATION
+
+(Note that the size of the complete install with all the weights is ~ 15Gb).
 
 Edit install.sh and specify the install directory for the repositories above. By default, they will be installed in ~/soft
 
