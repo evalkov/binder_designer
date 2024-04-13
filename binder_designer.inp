@@ -1,5 +1,5 @@
 output=/path-to-output
 inference.input_pdb=/full-path-to-pdb-file
-inference.num_designs=20
 contigmap.contigs=[B1-268/0 20-30]
 ppi.hotspot_res=[B166]
+inference.num_designs=20
