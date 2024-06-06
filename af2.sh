@@ -7,7 +7,6 @@
 #SBATCH --mem-per-cpu=1G
 #SBATCH --time=12:00:00
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=valkove2
 
 export DL_BINDER_DESIGN_DIR="/path/dl_binder_design"
 export SILENT_TOOLS_DIR="/path/silent_tools"
