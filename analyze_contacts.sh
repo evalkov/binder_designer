@@ -5,14 +5,14 @@
 #SBATCH --mem-per-cpu=1G
 #SBATCH --time=00:59:00
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=valkove2
+#SBATCH --mail-user=$USER
 
 module load ccp4/8.0.010
 
 # This must be set for pisa to work and for pisa.cfg to be read
 export CCP4=/mnt/nasapps/production/ccp4/8.0.010
 
-PROC_DIR=/mnt/beegfs/valkov/rfdiffusion/binder781-model1/binder781-model1-TFldTo5K/top_scoring_solutions
+PROC_DIR=/path/
 cd $PROC_DIR
 
 
