@@ -171,6 +171,6 @@ def generate_cxc_file(csv_file_path, output_cxc_path):
     plot_rmsd_vs_bsa(binders_df_cleaned, top_20_binders)
 
 # Example usage
-csv_file_path = '/Users/valkove2/Downloads/Archive/final_binders_list.csv'  # Path to the CSV file
-output_cxc_path = '/Users/valkove2/Downloads/Archive/top10/binders.cxc'  # Path where the generated binders.cxc file will be saved
+csv_file_path = '/path/final_binders_list.csv'  # Path to the CSV file
+output_cxc_path = '/path/binders.cxc'  # Path where the generated binders.cxc file will be saved
 generate_cxc_file(csv_file_path, output_cxc_path)
