@@ -103,7 +103,7 @@ custom_cmap = sns.color_palette("Blues", as_cmap=True)
 heatmap_weighted_data = top_50_weighted_data[metrics_to_normalize]
 
 # Set the font properties
-font_properties = fm.FontProperties(family='Arial', size=12)
+font_properties = fm.FontProperties(family='sans-serif', size=12)
 
 # Plot the heatmap without cell values and remove white borders
 plt.figure(figsize=(14, 10))
