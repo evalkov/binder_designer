@@ -1,13 +1,19 @@
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+
+# Expect scaled_csv as an argument
+if len(sys.argv) != 2:
+    print("Usage: python script.py <scaled_csv>")
+    sys.exit(1)
+
+scaled_csv = sys.argv[1]
 
 # Load the CSV files
-top50_path = 'top50_weighted_composite_scores.csv'
 final_path = 'final_binders_list.csv'
 
-top50_df = pd.read_csv(top50_path)
+top50_df = pd.read_csv(scaled_csv)
 final_df = pd.read_csv(final_path)
 
 # Merging the datasets on the 'description' column
@@ -97,7 +103,14 @@ for ax in axes[num_plots:]:
 
 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
+# Determine the output file name and plot title based on the input file name
+if 'standard_scaler' in scaled_csv:
+    output_combined_plots_path = 'plots_standard_scaled.eps'
+    plt.suptitle('Combined Plots of Top 50 Binders vs. All - Standard (Z-Score) Scaling Model', fontsize=16)
+elif 'minmax_scaler' in scaled_csv:
+    output_combined_plots_path = 'plots_minmax_scaled.eps'
+    plt.suptitle('Combined Plots of Top 50 Binders vs. All - Min-Max Scaling Model', fontsize=16)
+
 # Save the combined figure as an EPS file
-output_combined_plots_path = 'combined_plots.eps'
 plt.savefig(output_combined_plots_path, format='eps')
 plt.close()
