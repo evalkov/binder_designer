@@ -10,8 +10,8 @@
 module load python
 module load ccp4/8.0.010
 
-DIR=/home/valkove2/soft/binder_designer
-SOFT=/mnt/
+DIR=
+SOFT=/home/valkove2/soft/binder_designer
 
 # This must be set for pisa to work and for pisa.cfg to be read
 export CCP4=/mnt/nasapps/production/ccp4/8.0.010
