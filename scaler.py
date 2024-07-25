@@ -1,27 +1,9 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-# Function to filter data based on residue and range input
-def filter_data_by_residue_and_range(data, residue, start_range, end_range):
-    filtered_data = data[data['binder_seq'].str[start_range-1:end_range].str.contains(residue)]
-    return filtered_data
-
 # Load the dataset
 file_path = 'final_binders_list.csv'
 data = pd.read_csv(file_path)
-
-# Set the residue and range
-residue_input = 'P/44-48'  # Example residue and range
-
-# Parse the residue and range
-residue, range_input = residue_input.split('/')
-start_range, end_range = map(int, range_input.split('-'))
-if start_range > end_range:
-    raise ValueError("Start range cannot be greater than end range.")
-data = filter_data_by_residue_and_range(data, residue, start_range, end_range)
-
-if data.empty:
-    raise ValueError("No entries match the specified residue and range.")
 
 # Define weights for each metric
 weights = {
@@ -71,3 +53,4 @@ top_50_standard_scaled.to_csv('top_50_binders_weighted_standard_scaler.csv', ind
 
 top_50_minmax_scaled = data_minmax_scaled.nlargest(50, 'weighted_composite_score')
 top_50_minmax_scaled.to_csv('top_50_binders_weighted_minmax_scaler.csv', index=False, float_format='%.2f')
+
