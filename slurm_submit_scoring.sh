@@ -10,8 +10,8 @@
 module load python
 module load ccp4/8.0.010
 
-DIR=/mnt/beegfs/valkov/rfdiffusion/caf1/caf1-Mu3Tc56J
-SOFT=/mnt/beegfs/valkov/rfdiffusion/caf1/caf1-Mu3Tc56J
+DIR=/home/valkove2/soft/binder_designer
+SOFT=/mnt/
 
 # This must be set for pisa to work and for pisa.cfg to be read
 export CCP4=/mnt/nasapps/production/ccp4/8.0.010
