@@ -68,9 +68,4 @@ with open(binders_cxc_path, 'a') as file:
 color byhetero
 """)
 
-# Compress the predictions folder as tar.bz2
-with tarfile.open('predictions.tar.bz2', 'w:bz2') as tar:
-    tar.add(predictions_dir, arcname=os.path.basename(predictions_dir))
-
 print(f"binders.cxc file has been created and populated successfully at {binders_cxc_path}.")
-print(f"The directory {predictions_dir} has been compressed into predictions.tar.bz2.")
