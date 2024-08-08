@@ -1,14 +1,32 @@
 #!/bin/bash
+#SBATCH --job-name=scoring
+#SBATCH --cpus-per-task=48
+#SBATCH --mem-per-cpu=1G
+#SBATCH --time=00:30:00
+#SBATCH --mail-type=FAIL,INVALID_DEPEND,TIME_LIMIT
 
-# Check if RFDIR is set
-if [ -z "$RFDIR" ]; then
-  echo "RFDIR is not set. Exiting."
-  exit 1
-fi
+module load python
+module load ccp4/8.0.010
 
-cd $RFDIR
+# Define the script directory
+SOFT=/home/valkove2/soft/binder_designer
+
+# This must be set for pisa to work and for pisa.cfg to be read
+export CCP4=/mnt/nasapps/production/ccp4/8.0.010
 
 AF2_PAE_INTERACT="10"
+
+if [[ -e "out_1.sc" ]]; then
+    cp out_1.sc out.sc
+    for file in $(ls out_*.sc); do
+        if [ "$file" != "out_1.sc" ]; then
+            tail -n +2 $file >> out.sc
+        fi
+    done
+else
+    echo "out_1.sc doesn't exist"
+    exit 1
+fi
 
 # Check if the file out.sc exists in the current directory or in the logs directory
 if [[ -e "out.sc" ]]; then
@@ -71,102 +89,75 @@ tail -n +2 pdb_list.txt | while read -r line; do
     fi
 done
 
-mkdir -p top_scoring_solutions
-
-# Process lines starting from line 2
-awk 'NR > 1 {print $5 ".pdb"}' binders_list.txt | while read -r file; do
-    # Check if the file exists
-    if [[ -e $file ]]; then
-        cp "$file" top_scoring_solutions/
+# Check if a file exists and exit if it doesn't
+check_file_exists() {
+    if [ ! -f "$1" ]; then
+        echo "File $1 does not exist. Exiting."
+        exit 1
     fi
-done
+}
 
-mkdir -p top20_scoring_solutions
-cp binders_list.txt top20_scoring_solutions/
-cp binders_list.txt top_scoring_solutions/
-
-echo "\
-set bgcolor white" > binders.cxc
-
-# Process lines starting from line 2 and copy first 20 files
-awk 'NR > 1 && NR <= 21 {print $5 ".pdb"}' binders_list.txt | while read -r file; do
-    # Check if the file exists
-    if [[ -e $file ]]; then
-        echo "open $file" >> binders.cxc
-        cp "$file" top20_scoring_solutions/
-    elif [[ -e af2_models/$file ]]; then
-        echo "open $file" >> binders.cxc
-        cp af2_models/"$file" top20_scoring_solutions/
+# Execute a command and exit if it fails
+execute_command() {
+    eval $1
+    if [ $? -ne 0 ]; then
+        echo "Command failed: $1. Exiting."
+        exit 1
     fi
-done
+}
 
-echo "\
-cartoon style protein modeh tube rad 2 sides 24
-cartoon style width 2 thick 0.2
-rainbow chain palette RdYlBu-5
-lighting simple shadows false intensity 0.5
-view all
-hide atoms
-show cartoons
-hide all models
-show #1 models
-matchmaker all to #1/B pairing bs
-" >> binders.cxc
+# Run the Python scripts with the appropriate checks
+execute_command "`which python` $SOFT/compute.py"
+execute_command "`which python` $SOFT/pisa.py"
+execute_command "`which python` $SOFT/binder_list_generation.py"
+execute_command "`which python` $SOFT/scaler.py"
 
-# Initialize a counter
-counter=0
+# Check if input files exist before running heatmap generation scripts
+check_file_exists "top_50_binders_weighted_minmax_scaler.csv"
+execute_command "`which python` $SOFT/heatmap_generation.py top_50_binders_weighted_minmax_scaler.csv"
 
-# Loop through each line of the input file, skipping the header line
-awk 'NR > 1 && NR <= 21 {print $5 ".pdb"}' binders_list.txt | while read -r file; do
-    # Increment the counter
-    ((counter++))
+check_file_exists "top_50_binders_weighted_standard_scaler.csv"
+execute_command "`which python` $SOFT/heatmap_generation.py top_50_binders_weighted_standard_scaler.csv"
 
-    # Check if the counter has reached 20, if so, exit the loop
-    if [[ $counter -eq 21 ]]; then
-        break
-    fi
+check_file_exists "binders_weighted_composite_scores_minmax_scaler.csv"
+execute_command "`which python` $SOFT/plots_generation.py binders_weighted_composite_scores_minmax_scaler.csv"
 
-    # Check if the file exists
-    if [[ -e $file ]]; then
-        echo "\
-interfaces select #$counter/B contacting #$counter/A bothSides true
-contacts #$counter/A restrict #$counter/B intraMol false
-show sel atoms
-select clear
-" >> binders.cxc
-    elif [[ -e af2_models/$file ]]; then
-        echo "\
-interfaces select #$counter/B contacting #$counter/A bothSides true
-contacts #$counter/A restrict #$counter/B intraMol false
-show sel atoms
-select clear
-" >> binders.cxc
-    fi
-done
+check_file_exists "binders_weighted_composite_scores_standard_scaler.csv"
+execute_command "`which python` $SOFT/plots_generation.py binders_weighted_composite_scores_standard_scaler.csv"
 
-echo "\
-delete H
-color byhetero
-" >> binders.cxc
-
-cp binders.cxc top20_scoring_solutions/
-cp binders.cxc top_scoring_solutions/
+# Check if both input files exist before running the compare_csv script
+check_file_exists "top_50_binders_weighted_standard_scaler.csv"
+check_file_exists "top_50_binders_weighted_minmax_scaler.csv"
+execute_command "`which python` $SOFT/compare_csv.py top_50_binders_weighted_standard_scaler.csv top_50_binders_weighted_minmax_scaler.csv"
+execute_command "`which python` $SOFT/top_binder_scatter_plot_generation.py"
+execute_command "`which python` $SOFT/chimerax_script_generation.py"
 
 # Count lines excluding the first line in each file
 hit_binders=$(tail -n +2 binders_list.txt | wc -l)
 
-tar -cvjf top20_scoring_solutions.tar.bz2 top20_scoring_solutions/
-tar -cvjf top_scoring_solutions.tar.bz2 top_scoring_solutions/
-
 # Check files size before attachign to email
 maxsize=$((7*1024*1024)) # 7 MB in bytes
-totalsize=$(stat -c%s top20_scoring_solutions.tar.bz2)
+totalsize=$(stat -c%s predictions.tar.bz2)
 
 # workaround with libcrypto not accessing the correct openssl
 export LD_LIBRARY_PATH=/lib64:\$LD_LIBRARY_PATH
 
 if [ $totalsize -lt $maxsize ]; then
-        cat rfdiff.inp | mutt -e 'set content_type=text/html' -s "RFdiffusion is complete with $hit_binders hits." -e 'my_hdr From:RFdiffusion (RFdiffusion)' -a top20_scoring_solutions.tar.bz2 -- $USER@nih.gov
+        cat run_parameters.html | mutt -e 'set content_type=text/html' -s "RFdiffusion is complete with $hit_binders hits." -e 'my_hdr From:RFdiffusion (RFdiffusion)' -a predictions.tar.bz2 -- $USER@nih.gov
 else
-        cat rfdiff.inp | mutt -e 'set content_type=text/html' -s "RFdiffusion is complete with $hit_binders hits." -e 'my_hdr From:RFdiffusion (RFdiffusion)' -- $USER@nih.gov
+        cat run_parameters.html | mutt -e 'set content_type=text/html' -s "RFdiffusion is complete with $hit_binders hits." -e 'my_hdr From:RFdiffusion (RFdiffusion)' -- $USER@nih.gov
 fi
+
+# Tidy up
+# Create directories
+mkdir -p scoring_tables plots logs af2pred_pdbs silent_files af2_scores temp_files processing
+
+# Move files to respective directories
+mv *.csv scoring_tables/
+mv *.log logs/
+mv *.eps plots/
+mv *_af2pred.pdb af2pred_pdbs/
+mv *.silent silent_files/
+mv *.sc af2_scores/
+mv *.point *.idx x?? temp_files/
+mv rfdiff_chunk_* silent_files pisa_xml_files temp_files af2_scores pdb trb processing/
