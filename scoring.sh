@@ -132,18 +132,27 @@ execute_command "`which python` $SOFT/compare_csv.py top_50_binders_weighted_sta
 execute_command "`which python` $SOFT/top_binder_scatter_plot_generation.py"
 execute_command "`which python` $SOFT/chimerax_script_generation.py"
 
+# Compress folders with predicitons and plots
+tar -cvjf predictions.tar.bz2 predictions/
+mv *.eps plots/
+tar -cvjf plots.tar.bz2 plots/
+
 # Count lines excluding the first line in each file
 hit_binders=$(tail -n +2 binders_list.txt | wc -l)
 
-# Check files size before attachign to email
+# Check files size before attaching to email
 maxsize=$((7*1024*1024)) # 7 MB in bytes
-totalsize=$(stat -c%s predictions.tar.bz2)
+
+# Calculate the combined size of both files
+plotsize=$(stat -c%s plots.tar.bz2)
+predsize=$(stat -c%s predictions.tar.bz2)
+totalsize=$((plotsize + predsize))
 
 # workaround with libcrypto not accessing the correct openssl
 export LD_LIBRARY_PATH=/lib64:\$LD_LIBRARY_PATH
 
 if [ $totalsize -lt $maxsize ]; then
-        cat run_parameters.html | mutt -e 'set content_type=text/html' -s "RFdiffusion is complete with $hit_binders hits." -e 'my_hdr From:RFdiffusion (RFdiffusion)' -a predictions.tar.bz2 -- $USER@nih.gov
+        cat run_parameters.html | mutt -e 'set content_type=text/html' -s "RFdiffusion is complete with $hit_binders hits." -e 'my_hdr From:RFdiffusion (RFdiffusion)' -a plots.tar.bz2 -a predictions.tar.bz2 -- $USER@nih.gov
 else
         cat run_parameters.html | mutt -e 'set content_type=text/html' -s "RFdiffusion is complete with $hit_binders hits." -e 'my_hdr From:RFdiffusion (RFdiffusion)' -- $USER@nih.gov
 fi
@@ -155,7 +164,6 @@ mkdir -p scoring_tables plots logs af2pred_pdbs silent_files af2_scores temp_fil
 # Move files to respective directories
 mv *.csv scoring_tables/
 mv *.log logs/
-mv *.eps plots/
 mv *_af2pred.pdb af2pred_pdbs/
 mv *.silent silent_files/
 mv *.sc af2_scores/
