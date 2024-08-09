@@ -134,6 +134,7 @@ execute_command "`which python` $SOFT/chimerax_script_generation.py"
 
 # Compress folders with predicitons and plots
 tar -cvjf predictions.tar.bz2 predictions/
+mkdir -p plots
 mv *.eps plots/
 tar -cvjf plots.tar.bz2 plots/
 
@@ -159,7 +160,7 @@ fi
 
 # Tidy up
 # Create directories
-mkdir -p scoring_tables plots logs af2pred_pdbs silent_files af2_scores temp_files processing
+mkdir -p scoring_tables logs af2pred_pdbs silent_files af2_scores temp_files processing
 
 # Move files to respective directories
 mv *.csv scoring_tables/
