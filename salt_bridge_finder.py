@@ -14,19 +14,6 @@ logging.basicConfig(
     format='%(levelname)s:%(message)s'
 )
 
-def extract_pdb_id_parts(pdb_id):
-    """
-    Extracts the variable numbers from the PDB ID and formats them as requested.
-
-    Example:
-        Input: "RFDIFF_DESIGN_982_DLDESIGN_1_AF2PRED"
-        Output: "982_1"
-    """
-    match = re.search(r'_(\d+)_.*_(\d+)_', pdb_id)
-    if match:
-        return f"{match.group(1)}_{match.group(2)}"
-    return pdb_id  # Fallback to original ID if parsing fails.
-
 def process_single_file(filepath, target_chain_A, target_chain_B):
     """
     Processes a single XML file and extracts salt bridges.
@@ -42,7 +29,7 @@ def process_single_file(filepath, target_chain_A, target_chain_B):
     """
     results = []
     filename = os.path.basename(filepath)
-    pdb_id = filename.replace('.xml', '').upper()
+    pdb_id = filename.replace('.xml', '').lower()
 
     try:
         tree = ET.parse(filepath)
@@ -121,7 +108,7 @@ def process_single_file(filepath, target_chain_A, target_chain_B):
                 res2 = f"{chain2_elem.text.strip()}/{res2_elem.text.strip()}{seqnum2}"
                 dist_rounded = round(dist, 2)
 
-                formatted_pdb_id = extract_pdb_id_parts(pdb_id)
+                formatted_pdb_id = pdb_id # Already lowercase
                 logging.info(f"{formatted_pdb_id}: {res1} ↔ {res2} at {dist_rounded} Å")
 
                 results.append([formatted_pdb_id, res1, res2, dist_rounded])
