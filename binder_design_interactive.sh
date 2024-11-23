@@ -1,9 +1,9 @@
 #!/bin/bash
 
 ### GLOBAL PARAMS ###
-export BINDER_DESIGNER_EXTERNAL="/mnt/beegfs/software/binder_designer/external/"
+export BINDER_DESIGNER_EXTERNAL="/mnt/beegfs/software/binder_designer/external"
 export CHUNKSIZE=50
-export ARRAYSIZE=10
+export ARRAYSIZE=8
 #####################
 
 export RFDIFFUSION_DIR="$BINDER_DESIGNER_EXTERNAL/RFdiffusion"
