@@ -9,7 +9,7 @@ import argparse
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, List, Dict
 
 # Constants
 AF2_PAE_INTERACT = 10
@@ -78,39 +78,28 @@ def execute_command(command: str, cwd: Optional[str] = None):
         logging.error(f"Command failed: {command}")
         sys.exit(1)
 
-def combine_sc_files(sc_directory: Path) -> List[str]:
+def combine_sc_files(sc_file: Path) -> List[str]:
     """
-    Combine all out_*.sc files into a single list of lines, with special handling for out_1.sc.
+    Read and combine lines from the provided .sc file.
 
     Args:
-        sc_directory (Path): Directory containing out_*.sc files.
+        sc_file (Path): Path to the .sc file.
 
     Returns:
-        List[str]: Combined and filtered lines from all out_*.sc files.
+        List[str]: Combined and filtered lines from the .sc file.
     """
-    out_sc = sc_directory / "out.sc"
-    out_1_sc = sc_directory / "out_1.sc"
-
-    combined_lines = []
-    if out_1_sc.exists():
-        with out_1_sc.open("r") as infile:
-            header = infile.readline().strip()
-            combined_lines.append(header)
-            for line in infile:
-                if line.startswith("SCORE:"):
-                    combined_lines.append(line)
-        # Process other out_*.sc files
-        for file in sorted(f for f in sc_directory.iterdir() if f.name.startswith("out_") and f.name != "out_1.sc" and f.suffix == ".sc"):
-            with file.open("r") as infile:
-                infile.readline()  # Skip header
-                for line in infile:
-                    if line.startswith("SCORE:"):
-                        combined_lines.append(line)
-        logging.info(f"Combined {len(combined_lines)} lines from out_*.sc files.")
-    else:
-        logging.error("out_1.sc doesn't exist. Exiting.")
+    if not sc_file.exists():
+        logging.error(f".sc file does not exist: {sc_file}")
         sys.exit(1)
 
+    combined_lines = []
+    with sc_file.open("r") as infile:
+        header = infile.readline().strip()
+        combined_lines.append(header)
+        for line in infile:
+            if line.startswith("SCORE:"):
+                combined_lines.append(line)
+    logging.info(f"Combined {len(combined_lines)} lines from {sc_file}.")
     return combined_lines
 
 def filter_sc_lines(combined_lines: List[str]) -> List[List[str]]:
@@ -118,7 +107,7 @@ def filter_sc_lines(combined_lines: List[str]) -> List[List[str]]:
     Filter combined .sc lines based on pae_interaction and extract required fields.
 
     Args:
-        combined_lines (List[str]): Combined lines from out_*.sc files.
+        combined_lines (List[str]): Combined lines from the .sc file.
 
     Returns:
         List[List[str]]: Filtered data with required fields.
@@ -258,7 +247,7 @@ def process_pdb_entries_parallel(filtered_entries: List[List[str]],
     Process filtered pdb entries in parallel to extract sequences and generate binder.csv.
 
     Args:
-        filtered_entries (List[List[str]]): Filtered data from .sc files.
+        filtered_entries (List[List[str]]): Filtered data from the .sc file.
         output_file (Path): Path to the output binder.csv file.
         sc_directory (Path): Directory containing PDB files.
         chain (str): Chain identifier to extract sequences from.
@@ -301,8 +290,11 @@ def main():
     parser.add_argument('--settings_file', required=True, help="Path to compute_settings.txt file")
     parser.add_argument('--output_csv', type=str, default="binders.csv", help='Path to the output binders.csv file.')
     parser.add_argument('--chain', type=str, default="A", help='Chain identifier to extract sequences from.')
-    parser.add_argument('--sc_directory', type=str, default=".", help='Directory containing out_*.sc files and PDB files.')
-    
+    parser.add_argument('--sc_directory', type=str, default=".", help='Directory containing PDB files.')
+    # Modified af2_score flag to accept only one .sc file
+    parser.add_argument('--af2_score', required=True, metavar='AF2_SCORE_FILE',
+                        help='Path to the .sc file.')
+
     args = parser.parse_args()
 
     settings_file = Path(args.settings_file)
@@ -323,13 +315,20 @@ def main():
     # Load Python module
     load_python_module()
 
+    # Handle sc file passed via --af2_score
+    af2_score_file = Path(args.af2_score)
+    if not af2_score_file.exists():
+        logging.error(f".sc file does not exist: {af2_score_file}")
+        sys.exit(1)
+
+    # sc_directory is for PDB files
     sc_directory = Path(args.sc_directory)
     if not sc_directory.is_dir():
         logging.error(f"Specified sc_directory does not exist or is not a directory: {sc_directory}")
         sys.exit(1)
 
-    # Combine out_*.sc files into memory
-    combined_lines = combine_sc_files(sc_directory)
+    # Combine sc file into memory using the provided af2_score file
+    combined_lines = combine_sc_files(af2_score_file)
 
     # Filter lines based on pae_interaction
     filtered_entries = filter_sc_lines(combined_lines)
