@@ -1,48 +1,160 @@
+#!/usr/bin/env python3
+
 import os
 import shutil
 import subprocess
 import xml.etree.ElementTree as ET
+import argparse
+import logging
+from pathlib import Path
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
-# Read compute settings from the file
-settings_file = 'compute_settings.txt'
-with open(settings_file, 'r') as f:
-    lines = f.readlines()
+def setup_logging(log_file: Path):
+    """
+    Set up logging to output to both console and a log file.
 
-# Extract max_workers and batch_size from the settings file
-for line in lines:
-    if 'max_workers' in line:
-        max_workers = int(line.split(':')[1].strip())
-    if 'batch_size' in line:
-        batch_size = int(line.split(':')[1].strip())
+    Args:
+        log_file (Path): Path to the log file.
+    """
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
 
-# Set the residue counter and chain ID with default values
-residue_counter = None
-chain_id = None
+def parse_arguments():
+    """
+    Parse command-line arguments.
 
-# Check if residue_counter and chain_id are specified
-if residue_counter is None:
-    residue_counter = 0  # No residue restriction
-if chain_id is None:
-    chain_id = 'A'  # Default chain ID
+    Returns:
+        argparse.Namespace: Parsed arguments.
+    """
+    parser = argparse.ArgumentParser(description="Process PDB files with PISA analysis.")
+    parser.add_argument('--settings_file', '-c', required=True, help="Path to compute_settings.txt file")
+    parser.add_argument('--log_file', '-l', type=str, default='pisa_analysis.log', help='Path to the log file.')
+    return parser.parse_args()
 
-# Print the chain and residue information
-if residue_counter == 0:
-    print(f"Analyzing chain {chain_id} with no residue restriction")
-else:
-    print(f"Analyzing chain {chain_id} and only after residue {residue_counter}")
+def parse_settings_file(settings_file: Path) -> dict:
+    """
+    Parse the settings file to extract configuration parameters.
 
-# Directory containing PDB files
-pdb_dir = '.'
-pdb_files = [file for file in os.listdir(pdb_dir) if file.endswith('.pdb')]
+    Args:
+        settings_file (Path): Path to the settings file.
 
-# Function to parse XML and extract relevant data
-def parse_xml(file, chain_id, residue_counter):
+    Returns:
+        dict: Dictionary containing configuration parameters.
+    """
+    if not settings_file.is_file():
+        logging.error(f"Settings file does not exist: {settings_file}")
+        sys.exit(1)
+    
+    settings = {}
+    try:
+        with open(settings_file, 'r') as f:
+            for line in f:
+                # Ignore empty lines and comments
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    settings[key.strip()] = value.strip()
+    except Exception as e:
+        logging.error(f"Failed to read settings file {settings_file}: {e}")
+        sys.exit(1)
+    
+    # Validate required settings
+    if 'max_workers' not in settings:
+        logging.error(f"'max_workers' not found in settings file {settings_file}.")
+        sys.exit(1)
+    
+    try:
+        settings['max_workers'] = int(settings['max_workers'])
+    except ValueError:
+        logging.error(f"'max_workers' must be an integer in settings file {settings_file}.")
+        sys.exit(1)
+    
+    # Handle optional settings with defaults if necessary
+    settings['batch_size'] = int(settings.get('batch_size', 100))  # Example default
+    
+    logging.info(f"Settings loaded from {settings_file}: {settings}")
+    return settings
+
+def source_ccp4_environment():
+    """
+    Source the CCP4 environment persistently.
+    """
+    try:
+        result = subprocess.run(
+            "module load ccp4/8.0.010 && env",
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE,
+            executable="/bin/bash"
+        )
+        env_vars = {}
+        for line in result.stdout.decode("utf-8").splitlines():
+            if '=' in line:
+                key, value = line.split('=', 1)
+                env_vars[key] = value
+
+        os.environ.update(env_vars)
+        logging.info("Successfully loaded CCP4 environment.")
+    except subprocess.CalledProcessError as e:
+        logging.error("Failed to load CCP4 environment. Ensure the module system is available and the CCP4 module is valid.")
+        sys.exit(1)
+
+    os.environ['CCP4'] = '/mnt/nasapps/production/ccp4/8.0.010'
+    ccp4_bin = os.path.join(os.environ['CCP4'], 'bin')
+    os.environ['PATH'] = f"{ccp4_bin}:{os.environ.get('PATH', '')}"
+
+    if shutil.which("pisa") is None:
+        logging.error("PISA executable not found. Ensure CCP4 is loaded correctly and added to the PATH.")
+        sys.exit(1)
+    else:
+        logging.info("PISA executable found.")
+
+def validate_settings(settings: dict):
+    """
+    Validate the settings extracted from the settings file.
+
+    Args:
+        settings (dict): Dictionary containing configuration parameters.
+    """
+    # Example validation, can be expanded as needed
+    if settings['max_workers'] <= 0:
+        logging.error("'max_workers' must be a positive integer.")
+        sys.exit(1)
+    if settings['batch_size'] <= 0:
+        logging.error("'batch_size' must be a positive integer.")
+        sys.exit(1)
+
+def parse_xml(file: Path, chain_id: str, residue_counter: int) -> tuple:
+    """
+    Parse the XML file generated by PISA to extract residues and bond counts.
+
+    Args:
+        file (Path): Path to the XML file.
+        chain_id (str): Chain identifier to analyze.
+        residue_counter (int): Residue counter for analysis.
+
+    Returns:
+        tuple: (residues list, h_bonds_count, salt_bridges_count)
+    """
     try:
         tree = ET.parse(file)
         root = tree.getroot()
+        logging.info(f"Successfully parsed XML file: {file}")
     except ET.ParseError as e:
-        print(f"Error parsing {file}: {e}")
+        logging.error(f"Error parsing {file}: {e}")
+        return [], 0, 0
+    except Exception as e:
+        logging.error(f"Unexpected error parsing {file}: {e}")
         return [], 0, 0
 
     residues = []
@@ -60,7 +172,6 @@ def parse_xml(file, chain_id, residue_counter):
             residues.append((current_chain_id, res_name, seq_num, asa, bsa, solv_en))
 
     for interface in root.findall('.//interface'):
-        # Hydrogen bonds
         h_bonds = interface.find('h-bonds')
         for bond in h_bonds.findall('bond'):
             if bond.find('chain-1').text == chain_id or bond.find('chain-2').text == chain_id:
@@ -68,10 +179,9 @@ def parse_xml(file, chain_id, residue_counter):
                 seqnum_2 = int(bond.find('seqnum-2').text)
                 if bond.find('chain-1').text == chain_id and seqnum_1 >= residue_counter:
                     h_bonds_count += 1
-                elif bond.find('chain-2').text == chain_id and seqnum_2 >= residue_counter:
+                if bond.find('chain-2').text == chain_id and seqnum_2 >= residue_counter:
                     h_bonds_count += 1
 
-        # Salt bridges
         salt_bridges = interface.find('salt-bridges')
         for bond in salt_bridges.findall('bond'):
             if bond.find('chain-1').text == chain_id or bond.find('chain-2').text == chain_id:
@@ -79,13 +189,21 @@ def parse_xml(file, chain_id, residue_counter):
                 seqnum_2 = int(bond.find('seqnum-2').text)
                 if bond.find('chain-1').text == chain_id and seqnum_1 >= residue_counter:
                     salt_bridges_count += 1
-                elif bond.find('chain-2').text == chain_id and seqnum_2 >= residue_counter:
+                if bond.find('chain-2').text == chain_id and seqnum_2 >= residue_counter:
                     salt_bridges_count += 1
 
     return residues, h_bonds_count, salt_bridges_count
 
-# Function to calculate buried area percentage
-def calculate_buried_area_percentage(residues):
+def calculate_buried_area_percentage(residues: list) -> list:
+    """
+    Calculate the buried area percentage for each residue.
+
+    Args:
+        residues (list): List of residues.
+
+    Returns:
+        list: List of tuples with buried area data.
+    """
     output = []
     for residue in residues:
         current_chain_id, res_name, seq_num, asa, bsa, solv_en = residue
@@ -96,8 +214,18 @@ def calculate_buried_area_percentage(residues):
             output.append((current_chain_id, res_name, seq_num, asa, bsa, solv_en, percentage, bar_str))
     return output
 
-# Function to calculate the total BSA score for residues in the specified chain with sequence number >= residue_counter
-def calculate_total_bsa(residues, chain_id, residue_counter):
+def calculate_total_bsa(residues: list, chain_id: str, residue_counter: int) -> int:
+    """
+    Calculate the total buried surface area (BSA) score.
+
+    Args:
+        residues (list): List of residues.
+        chain_id (str): Chain identifier to analyze.
+        residue_counter (int): Residue counter for analysis.
+
+    Returns:
+        int: Total BSA score.
+    """
     total_bars = 0
     for residue in residues:
         current_chain_id, _, seq_num, asa, bsa, _ = residue
@@ -107,54 +235,146 @@ def calculate_total_bsa(residues, chain_id, residue_counter):
             total_bars += bars
     return total_bars
 
-# Function to process a single PDB file
-def process_pdb_file(file, chain_id, residue_counter):
-    base_filename = os.path.splitext(file)[0]
+def process_pdb_file(file: Path, chain_id: str, residue_counter: int) -> tuple:
+    """
+    Process a single PDB file with PISA analysis.
 
-    # Run PISA analysis and create an XML output file
-    subprocess.run(['pisa', file, '-analyse', file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run(['pisa', file, '-xml', 'interfaces'], stdout=open(f'{base_filename}.xml', 'w'), stderr=subprocess.DEVNULL)
-    subprocess.run(['pisa', file, '-erase'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    Args:
+        file (Path): Path to the PDB file.
+        chain_id (str): Chain identifier to analyze.
+        residue_counter (int): Residue counter for analysis.
 
-    # Load and process the XML file
-    xml_file = f'{base_filename}.xml'
+    Returns:
+        tuple: (base_filename, total_bsa_score, h_bonds_count, salt_bridges_count)
+    """
+    base_filename = file.stem
+    try:
+        subprocess.run(['pisa', file, '-analyse', file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        subprocess.run(['pisa', file, '-xml', 'interfaces'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        subprocess.run(['pisa', file, '-erase'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        logging.info(f"PISA analysis completed for {file}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"PISA analysis failed for {file}: {e}")
+        return base_filename, 0, 0, 0
+
+    xml_file = Path(f"{base_filename}.xml")
     residues, h_bonds_count, salt_bridges_count = parse_xml(xml_file, chain_id, residue_counter)
-
-    # Calculate buried area percentage
     buried_area_percentage_data = calculate_buried_area_percentage(residues)
-
-    # Calculate total BSA score for the specified chain
     total_bsa_score = calculate_total_bsa(residues, chain_id, residue_counter)
+
+    # Optionally, you can handle 'buried_area_percentage_data' if needed
 
     return base_filename, total_bsa_score, h_bonds_count, salt_bridges_count
 
-# Process files in batches
-results = []
-with ThreadPoolExecutor(max_workers=max_workers) as executor:
-    futures = {executor.submit(process_pdb_file, file, chain_id, residue_counter): file for file in pdb_files}
+def main():
+    # Parse command-line arguments
+    args = parse_arguments()
+    settings_file = Path(args.settings_file)
+    log_file = Path(args.log_file)
 
-    for future in as_completed(futures):
-        file = futures[future]
+    # Set up logging
+    setup_logging(log_file)
+    logging.info("=== Starting PISA analysis process ===")
+
+    # Source CCP4 environment
+    source_ccp4_environment()
+
+    # Parse settings file
+    settings = parse_settings_file(settings_file)
+    max_workers = settings['max_workers']
+    batch_size = settings.get('batch_size', 100)  # Example usage, adjust as needed
+
+    # Validate settings
+    validate_settings(settings)
+
+    # Initialize analysis parameters
+    residue_counter = 0  # Default value
+    chain_id = 'A'        # Default value
+
+    logging.info(f"Analyzing chain {chain_id} with residue counter set to {residue_counter}")
+
+    pdb_dir = Path.cwd()
+    pdb_files = list(pdb_dir.glob("*.pdb"))
+    total_files = len(pdb_files)
+
+    if total_files == 0:
+        logging.warning(f"No .pdb files found in the directory '{pdb_dir}'. Exiting.")
+        sys.exit(0)
+
+    logging.info(f"Found {total_files} .pdb files in '{pdb_dir}'.")
+
+    # Prepare for processing
+    results = []
+    processed_count = 0
+    last_reported_percentage = 0
+    counters = {'processed_files': 0}
+    lock = threading.Lock()
+
+    # Define a thread-safe function to update progress
+    def update_progress():
+        with lock:
+            counters['processed_files'] += 1
+            nonlocal processed_count, last_reported_percentage
+            processed_count = counters['processed_files']
+            percentage = (processed_count / total_files) * 100
+            if int(percentage) // 10 > last_reported_percentage // 10:
+                last_reported_percentage = int(percentage)
+                logging.info(f"Processed {processed_count}/{total_files} files ({last_reported_percentage}% complete)")
+
+    # Use ThreadPoolExecutor for parallel PISA processing
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(process_pdb_file, file, chain_id, residue_counter): file
+            for file in pdb_files
+        }
+
+        for future in as_completed(futures):
+            file = futures[future]
+            try:
+                result = future.result()
+                results.append(result)
+                logging.info(f"Completed processing for {file}")
+            except Exception as e:
+                logging.error(f"Error processing {file}: {e}")
+            finally:
+                update_progress()
+
+    # Move XML files to a separate directory
+    xml_dir = pdb_dir / 'pisa_xml_files'
+    try:
+        xml_dir.mkdir(exist_ok=True)
+        logging.info(f"XML files will be moved to: {xml_dir}")
+    except Exception as e:
+        logging.error(f"Failed to create XML directory {xml_dir}: {e}")
+        sys.exit(1)
+
+    moved_files = 0
+    for file in pdb_dir.glob('*.xml'):
         try:
-            result = future.result()
-            results.append(result)
+            shutil.move(str(file), xml_dir)
+            moved_files += 1
+            logging.info(f"Moved XML file {file} to {xml_dir}")
         except Exception as e:
-            print(f"Error processing {file}: {e}")
+            logging.error(f"Failed to move XML file {file} to {xml_dir}: {e}")
 
-# Write all results to the output file
-with open('contacts.csv', 'w') as f:
-    f.write("binder,bsa_score,salt_bridges,h_bonds\n")
-    for result in results:
-        base_filename, total_bsa_score, salt_bridges_count, h_bonds_count = result
-        f.write(f"{base_filename},{total_bsa_score},{salt_bridges_count},{h_bonds_count}\n")
+    logging.info(f"Moved {moved_files} XML files to {xml_dir}")
 
-# Create a directory for XML files if it doesn't exist
-xml_dir = 'pisa_xml_files'
-os.makedirs(xml_dir, exist_ok=True)
+    # Write results to contacts.csv
+    contacts_csv = pdb_dir / 'contacts.csv'
+    try:
+        with contacts_csv.open('w') as f:
+            f.write("binder,bsa_score,salt_bridges,h_bonds\n")
+            for result in results:
+                base_filename, total_bsa_score, salt_bridges_count, h_bonds_count = result
+                f.write(f"{base_filename},{total_bsa_score},{salt_bridges_count},{h_bonds_count}\n")
+        logging.info(f"Successfully wrote results to {contacts_csv}")
+    except Exception as e:
+        logging.error(f"Failed to write results to {contacts_csv}: {e}")
+        sys.exit(1)
 
-# Move all XML files to the new directory
-for file in os.listdir('.'):
-    if file.endswith('.xml'):
-        shutil.move(file, os.path.join(xml_dir, file))
+    logging.info(f"Processing complete. {len(results)} files out of {total_files} were successfully processed.")
+    logging.info("=== PISA analysis process completed successfully ===")
 
-print(f"Processed {len(results)} files.")
+if __name__ == "__main__":
+    main()
+
