@@ -1,5 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import re  # Import regular expressions module
 
 def merge_csv_files(standard_scaler_path, minmax_scaler_path, output_csv_path):
     """
@@ -46,21 +48,18 @@ def merge_csv_files(standard_scaler_path, minmax_scaler_path, output_csv_path):
     if not duplicates_df1.empty:
         print("\nWarning: Duplicates found in df1 'description' column:")
         print(duplicates_df1[['description']])
-        # Handle duplicates as needed (e.g., remove, average, etc.)
-        # For this script, we'll proceed with the merge which will create a Cartesian product for duplicates.
+        # Handle duplicates as needed
 
     if not duplicates_df2.empty:
         print("\nWarning: Duplicates found in df2 'description' column:")
         print(duplicates_df2[['description']])
         # Handle duplicates as needed
-        # Proceeding with the merge
 
     # Merge the dataframes on the 'description' column
     merged_df = pd.merge(df1, df2, on='description', suffixes=('_standard', '_minmax'))
     print("\nDataFrames merged successfully.")
 
     # Select relevant columns and rename them
-    # Adjust the column selection based on available columns after merging
     try:
         merged_df = merged_df[['description',
                                'sequence_standard',  # Assuming 'sequence' exists in df1
@@ -84,9 +83,29 @@ def merge_csv_files(standard_scaler_path, minmax_scaler_path, output_csv_path):
 
     return merged_df
 
+def extract_label(description):
+    """
+    Extracts the first two groups of digits from a description string and joins them with an underscore.
+
+    Parameters:
+    - description (str): The description string to process.
+
+    Returns:
+    - label (str): The extracted label in the format 'number1_number2'.
+    """
+    numbers = re.findall(r'\d+', description)
+    if len(numbers) >= 2:
+        label = numbers[0] + '_' + numbers[1]
+    elif len(numbers) == 1:
+        label = numbers[0]
+    else:
+        label = ''
+    return label
+
 def generate_scatter_plot(data, x_column, y_column, output_plot_path):
     """
-    Generates a scatter plot for two specified columns and saves it as an EPS file.
+    Generates a scatter plot for two specified columns, labels the top 5 data points with adjusted positions
+    to avoid overlap, and saves it as an EPS file.
 
     Parameters:
     - data (pd.DataFrame): DataFrame containing the data to plot.
@@ -94,22 +113,107 @@ def generate_scatter_plot(data, x_column, y_column, output_plot_path):
     - y_column (str): Column name for the y-axis.
     - output_plot_path (str): Path where the plot will be saved.
     """
+    import numpy as np
+
     # Verify that the specified columns exist in the DataFrame
     if x_column not in data.columns:
         raise KeyError(f"Column '{x_column}' not found in the DataFrame.")
     if y_column not in data.columns:
         raise KeyError(f"Column '{y_column}' not found in the DataFrame.")
 
-    # Plot the two data columns
-    plt.figure(figsize=(10, 6))
+    # Extract labels from the 'description' column
+    data['label'] = data['description'].apply(extract_label)
+
+    # Identify the top 5 data points based on 'standard_scale_score'
+    top_n = 5
+    top_indices = data['standard_scale_score'].nlargest(top_n).index
+
+    # Prepare colors: light grey for all points, red for top 5
+    colors = ['lightgrey'] * len(data)
+    for idx in top_indices:
+        colors[idx] = 'red'
+
+    # Plot the data points
+    plt.figure(figsize=(12, 8))
     plt.scatter(data[x_column], data[y_column],
-                facecolors='none', edgecolors='black',
+                facecolors=colors, edgecolors='black',
                 s=50, linewidths=0.5, marker='o')
 
     plt.title('Scatter Plot of Top-Scoring Binders')
     plt.xlabel('Standard (Z-score) Scale Score')
     plt.ylabel('Min-Max Scale Score')
     plt.grid(True, linestyle=':', linewidth=0.5)
+
+    # Add labels to the top 5 points with adjusted positions
+    x = data[x_column].values
+    y = data[y_column].values
+    labels = data['label'].values
+
+    # Adjust label font size
+    label_font_size = 12  # Larger labels
+
+    # Adjust offset to bring labels a bit further from data points
+    offset = 0.02  # Increased offset to move labels slightly further away
+    xytext_factor = 600  # Adjusted to control label line length
+
+    # Initialize arrays for offsets
+    x_offsets = np.zeros(len(x))
+    y_offsets = np.zeros(len(y))
+
+    # Keep track of used positions to minimize overlap
+    used_positions = []
+
+    for idx in top_indices:
+        i = idx  # Current index
+
+        # Try different positions around the data point
+        positions = [
+            (offset, offset),
+            (-offset, offset),
+            (-offset, -offset),
+            (offset, -offset),
+            (0, offset),
+            (0, -offset),
+            (offset, 0),
+            (-offset, 0),
+        ]
+
+        for x_off, y_off in positions:
+            proposed_pos = (x[i] + x_off, y[i] + y_off)
+            overlap = False
+            for pos in used_positions:
+                if abs(proposed_pos[0] - pos[0]) < offset/2 and abs(proposed_pos[1] - pos[1]) < offset/2:
+                    overlap = True
+                    break
+            if not overlap:
+                x_offsets[i] = x_off
+                y_offsets[i] = y_off
+                used_positions.append(proposed_pos)
+                break
+        else:
+            # Default position if all positions overlap
+            x_offsets[i] = offset
+            y_offsets[i] = offset
+            used_positions.append((x[i] + offset, y[i] + offset))
+
+        # Adjust arrow properties to prevent penetration into data point
+        arrowprops = dict(
+            arrowstyle='-',
+            color='gray',
+            lw=0.5,
+            shrinkA=0,
+            shrinkB=5
+        )
+
+        plt.annotate(
+            labels[i],
+            (x[i], y[i]),
+            textcoords="offset points",
+            xytext=(x_offsets[i]*xytext_factor, y_offsets[i]*xytext_factor),
+            ha='center',
+            fontsize=label_font_size,
+            arrowprops=arrowprops
+        )
 
     # Adjust layout for better spacing
     plt.tight_layout()
@@ -138,7 +242,7 @@ def main():
     print("\nFirst few rows of the merged DataFrame:")
     print(merged_data.head())
 
-    # Step 2: Generate the scatter plot
+    # Step 2: Generate the scatter plot with adjusted labels
     generate_scatter_plot(merged_data,
                           x_column='standard_scale_score',
                           y_column='minmax_scale_score',
